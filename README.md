@@ -1,4 +1,4 @@
-# sifir-rs-sdk
+# Tor Rust SDK
 
 Builds a universal dyanamic library for iOS and a static library for Android.
 
@@ -104,3 +104,18 @@ fn main() {
     }
 }
 ```
+
+## License
+
+MIT
+
+## Credits
+
+This project builds upon the work of:
+
+- [sifir-rs-sdk](https://github.com/Sifir-io/sifir-rs-sdk/)
+- [libtor](https://github.com/MagicalBitcoin/libtor)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
