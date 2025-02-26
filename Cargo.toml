@@ -1,0 +1,16 @@
+#cargo-features = ["strip"]
+
+[workspace]
+
+members = ["tor", "utils", "logger"]
+
+resolver = "2"
+
+[profile.dev]
+opt-level = "s"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+#strip = "symbols"
