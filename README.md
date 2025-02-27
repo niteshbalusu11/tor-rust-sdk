@@ -4,7 +4,6 @@ Builds a universal dyanamic library for iOS and a static library for Android.
 
 
 - All of the code is in the `tor` directory.
-- The other directories for `sifir-android` and `sifir-ios` and no longer used.
 - Check the build script `build-android.sh` for building for android.
 - We build both `cdylib` and `staticlib`, but we only copy `.a` files to the `jniLibs` directory.
 - If you want the `.so` files, just go the inidividual target directories.
@@ -22,6 +21,9 @@ Builds a universal dyanamic library for iOS and a static library for Android.
 
 # Build iOS
 ./build-ios.sh
+
+# Build MacOS
+./build-macos.sh
 ```
 
 ## Supported platforms
@@ -38,16 +40,14 @@ Builds a universal dyanamic library for iOS and a static library for Android.
 
 ```
 # Build Android
-build-android
+./build-android.sh
 
 # Build iOS
-build-ios
+./build-ios.sh
 
 # Build MacOS
-build-macos
+./build-macos
 
-# Build all
-build-all
 ```
 
 ```rust
