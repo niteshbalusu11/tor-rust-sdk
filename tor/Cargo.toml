@@ -1,6 +1,6 @@
 [package]
 name = "tor"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Nitesh Balusu <niteshbalusu@icloud.com>"]
 edition = "2021"
 

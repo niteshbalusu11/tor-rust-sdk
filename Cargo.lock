@@ -2236,7 +2236,7 @@ dependencies = [
 
 [[package]]
 name = "tor"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "android_logger 0.13.3",
  "anyhow",
