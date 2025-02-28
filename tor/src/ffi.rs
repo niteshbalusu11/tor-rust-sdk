@@ -1,7 +1,9 @@
+use crate::http_client::{make_http_request, HttpMethod, HttpRequestParams};
 #[cfg(target_os = "android")]
 use android_logger::{Config, FilterBuilder};
 use log::debug;
 use once_cell::sync::OnceCell;
+use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_uchar, c_ulong, c_ushort};
 use std::sync::Mutex;
@@ -306,4 +308,194 @@ pub extern "C" fn free_string(s: *mut c_char) {
             let _ = CString::from_raw(s);
         }
     }
+}
+
+#[repr(C)]
+pub struct CHttpResponse {
+    pub status_code: c_ushort,
+    pub body: *mut c_char,
+    pub error: *mut c_char,
+}
+
+// Internal helper function (not exposed via FFI)
+fn make_tor_http_request(
+    url: *const c_char,
+    method: HttpMethod,
+    headers_json: *const c_char,
+    body: *const c_char,
+    timeout_ms: c_ulong,
+) -> CHttpResponse {
+    if INITIALIZED.get().is_none() {
+        return CHttpResponse {
+            status_code: 0,
+            body: empty_c_string(),
+            error: to_c_string("Tor library not initialized".to_string()),
+        };
+    }
+
+    debug!(
+        "http request params: {:?} {:?} {:?} {}",
+        url, headers_json, body, timeout_ms
+    );
+
+    let url_str = from_c_str(url);
+    let headers_json_str = from_c_str(headers_json);
+    let body_str = from_c_str(body);
+
+    // Parse headers JSON if provided
+    let headers: Option<HashMap<String, String>> = if !headers_json_str.is_empty() {
+        match serde_json::from_str(&headers_json_str) {
+            Ok(h) => Some(h),
+            Err(_) => {
+                return CHttpResponse {
+                    status_code: 0,
+                    body: empty_c_string(),
+                    error: to_c_string("Invalid headers JSON".to_string()),
+                };
+            }
+        }
+    } else {
+        None
+    };
+
+    // Create request params
+    let params = HttpRequestParams {
+        url: url_str,
+        method,
+        headers,
+        body: if body_str.is_empty() {
+            None
+        } else {
+            Some(body_str)
+        },
+        timeout_ms: Some(timeout_ms as u64),
+    };
+
+    // Get socks proxy address from the running Tor service
+    let service_guard = ensure_tor_service().lock().unwrap();
+    let socks_port = match &*service_guard {
+        Some(service) => service.socks_port,
+        None => {
+            return CHttpResponse {
+                status_code: 0,
+                body: empty_c_string(),
+                error: to_c_string("Tor service not running".to_string()),
+            };
+        }
+    };
+
+    debug!("socks port: {}", socks_port);
+
+    // Make the HTTP request
+    let socks_proxy = format!("127.0.0.1:{}", socks_port);
+    match make_http_request(params, socks_proxy) {
+        Ok(response) => {
+            debug!("http response: {:?}", response);
+            return CHttpResponse {
+                status_code: response.status_code,
+                body: to_c_string(response.body),
+                error: match response.error {
+                    Some(err) => to_c_string(err),
+                    None => empty_c_string(),
+                },
+            };
+        }
+        Err(e) => {
+            debug!("http error: {:?}", e);
+            return CHttpResponse {
+                status_code: 0,
+                body: empty_c_string(),
+                error: to_c_string(format!("Error making HTTP request: {:?}", e)),
+            };
+        }
+    }
+}
+
+// HTTP method functions exposed via FFI
+
+#[no_mangle]
+pub extern "C" fn http_get(
+    url: *const c_char,
+    headers_json: *const c_char,
+    timeout_ms: c_ulong,
+) -> CHttpResponse {
+    make_tor_http_request(
+        url,
+        HttpMethod::GET,
+        headers_json,
+        std::ptr::null(), // No body for GET
+        timeout_ms,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn http_post(
+    url: *const c_char,
+    body: *const c_char,
+    headers_json: *const c_char,
+    timeout_ms: c_ulong,
+) -> CHttpResponse {
+    make_tor_http_request(url, HttpMethod::POST, headers_json, body, timeout_ms)
+}
+
+#[no_mangle]
+pub extern "C" fn http_put(
+    url: *const c_char,
+    body: *const c_char,
+    headers_json: *const c_char,
+    timeout_ms: c_ulong,
+) -> CHttpResponse {
+    make_tor_http_request(url, HttpMethod::PUT, headers_json, body, timeout_ms)
+}
+
+#[no_mangle]
+pub extern "C" fn http_delete(
+    url: *const c_char,
+    headers_json: *const c_char,
+    timeout_ms: c_ulong,
+) -> CHttpResponse {
+    make_tor_http_request(
+        url,
+        HttpMethod::DELETE,
+        headers_json,
+        std::ptr::null(), // Usually no body for DELETE
+        timeout_ms,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn http_head(
+    url: *const c_char,
+    headers_json: *const c_char,
+    timeout_ms: c_ulong,
+) -> CHttpResponse {
+    make_tor_http_request(
+        url,
+        HttpMethod::HEAD,
+        headers_json,
+        std::ptr::null(), // No body for HEAD
+        timeout_ms,
+    )
+}
+
+#[no_mangle]
+pub extern "C" fn http_options(
+    url: *const c_char,
+    headers_json: *const c_char,
+    timeout_ms: c_ulong,
+) -> CHttpResponse {
+    make_tor_http_request(
+        url,
+        HttpMethod::OPTIONS,
+        headers_json,
+        std::ptr::null(), // No body for OPTIONS
+        timeout_ms,
+    )
+}
+
+// Free the HTTP response to prevent memory leaks
+#[no_mangle]
+pub extern "C" fn free_http_response(response: CHttpResponse) {
+    free_string(response.body);
+    free_string(response.error);
 }

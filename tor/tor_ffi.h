@@ -22,6 +22,12 @@ struct TOR_StartTorResponse {
   char *error_message;
 };
 
+struct TOR_CHttpResponse {
+  unsigned short status_code;
+  char *body;
+  char *error;
+};
+
 extern "C" {
 
 bool initialize_tor_library();
@@ -47,6 +53,26 @@ bool delete_hidden_service(const char *address);
 bool shutdown_service();
 
 void free_string(char *s);
+
+TOR_CHttpResponse http_get(const char *url, const char *headers_json, unsigned long timeout_ms);
+
+TOR_CHttpResponse http_post(const char *url,
+                            const char *body,
+                            const char *headers_json,
+                            unsigned long timeout_ms);
+
+TOR_CHttpResponse http_put(const char *url,
+                           const char *body,
+                           const char *headers_json,
+                           unsigned long timeout_ms);
+
+TOR_CHttpResponse http_delete(const char *url, const char *headers_json, unsigned long timeout_ms);
+
+TOR_CHttpResponse http_head(const char *url, const char *headers_json, unsigned long timeout_ms);
+
+TOR_CHttpResponse http_options(const char *url, const char *headers_json, unsigned long timeout_ms);
+
+void free_http_response(TOR_CHttpResponse response);
 
 } // extern "C"
 
