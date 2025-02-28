@@ -168,8 +168,7 @@ mod tests {
     use super::*;
     use crate::{OwnedTorService, TorHiddenServiceParam, TorServiceParam};
     use logger::Logger;
-    
-    
+
     use std::convert::TryInto;
     use std::sync::{Arc, Mutex};
 
