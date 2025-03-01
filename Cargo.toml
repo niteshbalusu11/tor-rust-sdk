@@ -2,7 +2,7 @@
 
 [workspace]
 
-members = ["tor", "utils", "logger"]
+members = ["tor", "utils", "logger", "tor-ffi"]
 
 resolver = "2"
 

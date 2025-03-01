@@ -24,8 +24,8 @@ rustup target add \
 
 # Then, build the library
 TARGET_DIR="target/ios"
-MANIFEST_PATH="./tor/Cargo.toml"
-BINARY_NAME="libtor.a"
+MANIFEST_PATH="./tor-ffi/Cargo.toml"
+BINARY_NAME="libtor_ffi.a"
 
 mkdir -p $TARGET_DIR
 
@@ -35,11 +35,11 @@ cargo build --release \
     --target aarch64-apple-ios \
     --target-dir $TARGET_DIR
 
-echo "Building for iOS (x86_64)..."
-cargo build --release \
-    --manifest-path="$MANIFEST_PATH" \
-    --target x86_64-apple-ios \
-    --target-dir "$TARGET_DIR"
+# echo "Building for iOS (x86_64)..."
+# cargo build --release \
+#     --manifest-path="$MANIFEST_PATH" \
+#     --target x86_64-apple-ios \
+#     --target-dir "$TARGET_DIR"
 
 echo "Building for iOS (aarch64-sim)..."
 cargo build --release \
@@ -51,7 +51,7 @@ cargo build --release \
 # Create temporary directories for the frameworks
 mkdir -p target/ios/ios-device/Headers target/ios/ios-simulator/Headers
 
-rm -rf target/ios/Tor.xcframework target/ios/TorCxxBridge.xcframework
+rm -rf target/Tor.xcframework
 HEADERS_DIR_IOS="target/ios/ios-device/Headers"
 HEADERS_DIR_IOS_SIM="target/ios/ios-simulator/Headers"
 
@@ -62,5 +62,5 @@ xcodebuild -create-xcframework \
   -headers $HEADERS_DIR_IOS \
   -library target/ios/aarch64-apple-ios-sim/release/$BINARY_NAME \
   -headers $HEADERS_DIR_IOS_SIM \
-  -output target/ios/Tor.xcframework
+  -output target/Tor.xcframework
 

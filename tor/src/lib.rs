@@ -1,4 +1,3 @@
-pub mod ffi;
 pub mod hidden_service;
 pub mod http_client;
 pub mod tcp_stream;
