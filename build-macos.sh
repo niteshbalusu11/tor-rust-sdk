@@ -19,7 +19,7 @@ rustup target add \
 
 # Create output directory
 mkdir -p target/macos
-MANIFEST_PATH="./tor/Cargo.toml"
+MANIFEST_PATH="./tor-ffi/Cargo.toml"
 
 # Build for Apple Silicon
 echo "Building for Apple Silicon (arm64)..."

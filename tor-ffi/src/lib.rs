@@ -1,18 +1,18 @@
-use crate::http_client::{make_http_request, HttpMethod, HttpRequestParams};
-#[cfg(target_os = "android")]
-use android_logger::{Config, FilterBuilder};
-use log::debug;
+use logger::Logger;
+use logger::log::debug;
+
 use once_cell::sync::OnceCell;
 use std::collections::HashMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_uchar, c_ulong, c_ushort};
 use std::sync::Mutex;
+use tor::http_client::{HttpMethod, HttpRequestParams, make_http_request};
 
 static INITIALIZED: OnceCell<bool> = OnceCell::new();
 
-use crate::{
-    ensure_runtime, OwnedTorService, OwnedTorServiceBootstrapPhase, TorHiddenServiceParam,
-    TorServiceParam,
+use tor::{
+    OwnedTorService, OwnedTorServiceBootstrapPhase, TorHiddenServiceParam, TorServiceParam,
+    ensure_runtime,
 };
 
 // Global state management for the Tor service
@@ -20,17 +20,6 @@ static TOR_SERVICE: OnceCell<Mutex<Option<OwnedTorService>>> = OnceCell::new();
 
 fn ensure_tor_service() -> &'static Mutex<Option<OwnedTorService>> {
     TOR_SERVICE.get_or_init(|| Mutex::new(None))
-}
-
-// Add this function to initialize logging
-pub fn init_logging() {
-    #[cfg(target_os = "android")]
-    android_logger::init_once(
-        Config::default()
-            .with_max_level(log::LevelFilter::Debug)
-            .with_tag("RustTor") // This will be your logcat tag
-            .with_filter(FilterBuilder::new().parse("debug,tor=debug").build()),
-    );
 }
 
 // C-compatible structs with primitive types only
@@ -71,14 +60,13 @@ fn from_c_str(s: *const c_char) -> String {
 }
 
 // Export functions with C ABI
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn initialize_tor_library() -> bool {
     if INITIALIZED.get().is_some() {
         return true;
     }
 
-    #[cfg(target_os = "android")]
-    init_logging();
+    let _logger = Logger::new();
 
     // Initialize runtime
     let _ = ensure_runtime();
@@ -92,7 +80,7 @@ pub extern "C" fn initialize_tor_library() -> bool {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn init_tor_service(
     socks_port: c_ushort,
     data_dir: *const c_char,
@@ -104,8 +92,10 @@ pub extern "C" fn init_tor_service(
 
     let data_dir_str = from_c_str(data_dir);
 
-    debug!("Rust FFI: Initializing Tor service with parameters: socks_port={}, data_dir={}, timeout_ms={}", 
-           socks_port, data_dir_str, timeout_ms);
+    debug!(
+        "Rust FFI: Initializing Tor service with parameters: socks_port={}, data_dir={}, timeout_ms={}",
+        socks_port, data_dir_str, timeout_ms
+    );
 
     let param = TorServiceParam {
         socks_port: Some(socks_port as u16),
@@ -131,7 +121,7 @@ pub extern "C" fn init_tor_service(
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn create_hidden_service(
     port: c_ushort,
     target_port: c_ushort,
@@ -161,7 +151,9 @@ pub extern "C" fn create_hidden_service(
 
         debug!(
             "Rust FFI: Creating hidden service with parameters: {:?} and control port {} and control host {}",
-            param.to_port, service.control_port.split(":").last().unwrap(), service.control_port.split(":").next().unwrap()
+            param.to_port,
+            service.control_port.split(":").last().unwrap(),
+            service.control_port.split(":").next().unwrap()
         );
 
         match service.create_hidden_service(param) {
@@ -192,7 +184,7 @@ pub extern "C" fn create_hidden_service(
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn start_tor_if_not_running(
     data_dir: *const c_char,
     key_data: *const c_uchar,
@@ -263,7 +255,7 @@ pub extern "C" fn start_tor_if_not_running(
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn get_service_status() -> c_int {
     let service_guard = ensure_tor_service().lock().unwrap();
 
@@ -277,7 +269,7 @@ pub extern "C" fn get_service_status() -> c_int {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn delete_hidden_service(address: *const c_char) -> bool {
     let mut service_guard = ensure_tor_service().lock().unwrap();
     let address_str = from_c_str(address);
@@ -289,7 +281,7 @@ pub extern "C" fn delete_hidden_service(address: *const c_char) -> bool {
     }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn shutdown_service() -> bool {
     let mut service_guard = ensure_tor_service().lock().unwrap();
 
@@ -301,7 +293,9 @@ pub extern "C" fn shutdown_service() -> bool {
 }
 
 // Clean up allocated C strings
-#[no_mangle]
+
+#[unsafe(no_mangle)]
+
 pub extern "C" fn free_string(s: *mut c_char) {
     if !s.is_null() {
         unsafe {
@@ -413,7 +407,7 @@ fn make_tor_http_request(
 
 // HTTP method functions exposed via FFI
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn http_get(
     url: *const c_char,
     headers_json: *const c_char,
@@ -428,7 +422,7 @@ pub extern "C" fn http_get(
     )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn http_post(
     url: *const c_char,
     body: *const c_char,
@@ -438,7 +432,7 @@ pub extern "C" fn http_post(
     make_tor_http_request(url, HttpMethod::POST, headers_json, body, timeout_ms)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn http_put(
     url: *const c_char,
     body: *const c_char,
@@ -448,7 +442,7 @@ pub extern "C" fn http_put(
     make_tor_http_request(url, HttpMethod::PUT, headers_json, body, timeout_ms)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn http_delete(
     url: *const c_char,
     headers_json: *const c_char,
@@ -463,7 +457,7 @@ pub extern "C" fn http_delete(
     )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn http_head(
     url: *const c_char,
     headers_json: *const c_char,
@@ -478,7 +472,7 @@ pub extern "C" fn http_head(
     )
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn http_options(
     url: *const c_char,
     headers_json: *const c_char,
@@ -494,7 +488,7 @@ pub extern "C" fn http_options(
 }
 
 // Free the HTTP response to prevent memory leaks
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn free_http_response(response: CHttpResponse) {
     free_string(response.body);
     free_string(response.error);

@@ -11,8 +11,7 @@ fn main() {
         .expect("Unable to generate bindings")
         .write_to_file("tor_ffi.h");
 
-    println!("cargo:rerun-if-changed=src/ffi.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
     println!("cargo:rerun-if-changed=cbindgen.toml");
-    println!("cargo:rustc-link-lib=tor");
+    println!("cargo:rustc-link-lib=tor-ffi");
 }

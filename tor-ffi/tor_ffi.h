@@ -74,8 +74,8 @@ TOR_CHttpResponse http_options(const char *url, const char *headers_json, unsign
 
 void free_http_response(TOR_CHttpResponse response);
 
-} // extern "C"
+}  // extern "C"
 
-} // namespace tor
+}  // namespace tor
 
-#endif // TOR_FFI_H
+#endif  // TOR_FFI_H

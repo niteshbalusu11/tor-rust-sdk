@@ -32,8 +32,9 @@ echo "Found NDK at: $NDK_PATH"
 API_LEVEL=30
 
 # Define build variables
-MANIFEST_PATH="./tor/Cargo.toml"
+MANIFEST_PATH="./tor-ffi/Cargo.toml"
 OUTPUT_DIR="target/jniLibs"
+BINARY_NAME="libtor_ffi.a"
 
 # Delete old output directory
 rm -rf "$OUTPUT_DIR"
@@ -78,7 +79,7 @@ export OPENSSL_INCLUDE_DIR="$PWD/target/aarch64-linux-android/release/build/open
 export OPENSSL_LIB_DIR="$PWD/target/aarch64-linux-android/release/build/openssl-sys-*/out/lib"
 
 cargo build --manifest-path="$MANIFEST_PATH" --target=aarch64-linux-android --release
-cp "target/aarch64-linux-android/release/libtor.a" "$OUTPUT_DIR/arm64-v8a/"
+cp "target/aarch64-linux-android/release/$BINARY_NAME" "$OUTPUT_DIR/arm64-v8a/"
 
 # Build for x86
 echo "Building for x86..."
@@ -92,7 +93,7 @@ export OPENSSL_INCLUDE_DIR="$PWD/target/i686-linux-android/release/build/openssl
 export OPENSSL_LIB_DIR="$PWD/target/i686-linux-android/release/build/openssl-sys-*/out/lib"
 
 cargo build --manifest-path="$MANIFEST_PATH" --target=i686-linux-android --release
-cp "target/i686-linux-android/release/libtor.a" "$OUTPUT_DIR/x86/"
+cp "target/i686-linux-android/release/$BINARY_NAME" "$OUTPUT_DIR/x86/"
 
 # Build for x86_64
 echo "Building for x86_64..."
@@ -106,29 +107,7 @@ export OPENSSL_INCLUDE_DIR="$PWD/target/x86_64-linux-android/release/build/opens
 export OPENSSL_LIB_DIR="$PWD/target/x86_64-linux-android/release/build/openssl-sys-*/out/lib"
 
 cargo build --manifest-path="$MANIFEST_PATH" --target=x86_64-linux-android --release
-cp "target/x86_64-linux-android/release/libtor.a" "$OUTPUT_DIR/x86_64/"
+cp "target/x86_64-linux-android/release/$BINARY_NAME" "$OUTPUT_DIR/x86_64/"
 
 
-
-# echo "Copying CXX files for arm64-v8a..."
-# for dir in target/aarch64-linux-android/release/build/cxx-*; do
-#     if [ -d "$dir" ]; then
-#         cp -r "$dir/out/"* "$OUTPUT_DIR/arm64-v8a/" 2>/dev/null || true
-#     fi
-# done
-#
-# echo "Copying CXX files for x86..."
-# for dir in target/i686-linux-android/release/build/cxx-*; do
-#     if [ -d "$dir" ]; then
-#         cp -r "$dir/out/"* "$OUTPUT_DIR/x86/" 2>/dev/null || true
-#     fi
-# done
-#
-# echo "Copying CXX files for x86_64..."
-# for dir in target/x86_64-linux-android/release/build/cxx-*; do
-#     if [ -d "$dir" ]; then
-#         cp -r "$dir/out/"* "$OUTPUT_DIR/x86_64/" 2>/dev/null || true
-#     fi
-# done
-#
 echo "Android build complete!"
