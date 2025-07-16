@@ -18,10 +18,3 @@ cbindgen = "0.28.0"
 [lib]
 crate-type = ["staticlib"]
 
-# Add these profile configurations
-[profile.release]
-opt-level = 'z'     # Optimize for size
-lto = true          # Enable Link Time Optimization
-codegen-units = 1   # Reduce parallel code generation units
-panic = 'abort'     # Remove panic unwinding code
-strip = true        # Strip symbols from binary
