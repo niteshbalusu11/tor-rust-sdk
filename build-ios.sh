@@ -14,7 +14,6 @@ unset MACOSX_DEPLOYMENT_TARGET
 export IPHONEOS_DEPLOYMENT_TARGET="16.0"
 export PLATFORM_NAME=iphoneos
 export DEVELOPER_DIR="$(xcode-select -p)"
-export SDKROOT="$DEVELOPER_DIR/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk"
 
 # First, make sure we have the targets
 rustup target add \

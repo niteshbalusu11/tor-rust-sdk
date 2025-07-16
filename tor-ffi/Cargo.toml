@@ -18,10 +18,6 @@ cbindgen = "0.28.0"
 [lib]
 crate-type = ["staticlib"]
 
-# Add this section to ensure proper linking on Android
-[target.'cfg(target_os = "android")'.rustflags]
-"-C" = "link-arg=-Wl,--export-dynamic"
-
 # Add these profile configurations
 [profile.release]
 opt-level = 'z'     # Optimize for size

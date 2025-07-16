@@ -46,7 +46,7 @@
         xcode-wrapper =
           pkgs:
           pkgs.stdenv.mkDerivation {
-            name = "xcode-wrapper-16.2.0";
+            name = "xcode-wrapper-16.4.0";
             buildInputs = [ pkgs.darwin.cctools ];
             buildCommand = ''
               mkdir -p $out/bin
@@ -84,10 +84,10 @@
 
               chmod +x $out/bin/*
 
-              if [ -d "/Applications/Xcode-16.2.0.app" ]; then
-                DEVELOPER_DIR="/Applications/Xcode-16.2.0.app/Contents/Developer"
-              elif [ -d "/Applications/Xcode.app" ]; then
+              if [ -d "/Applications/Xcode.app" ]; then
                 DEVELOPER_DIR="/Applications/Xcode.app/Contents/Developer"
+              elif [ -d "/Applications/Xcode-16.4.0.app" ]; then
+              DEVELOPER_DIR="/Applications/Xcode-16.4.0.app/Contents/Developer"
               else
                 echo "Error: Xcode not found"
                 exit 1
@@ -96,40 +96,7 @@
               echo "export DEVELOPER_DIR=\"$DEVELOPER_DIR\"" > $out/bin/env.sh
             '';
           };
-
         scripts = pkgs: {
-          setup-ios-env = pkgs.writeScriptBin "setup-ios-env" ''
-            #!${pkgs.stdenv.shell}
-            export XCODE_VERSION="16.2.0"
-            export XCODES_VERSION="1.6.0"
-
-            if [ "$(uname)" = "Darwin" ]; then
-              if [ -d "/Applications/Xcode.app" ]; then
-                XCODE_PATH="/Applications/Xcode.app"
-              elif [ -d "/Applications/Xcode-$XCODE_VERSION.app" ]; then
-                XCODE_PATH="/Applications/Xcode-$XCODE_VERSION.app"
-              else
-                echo "Installing Xcode $XCODE_VERSION..."
-                curl -L -o xcodes.zip "https://github.com/XcodesOrg/xcodes/releases/download/$XCODES_VERSION/xcodes.zip"
-                unzip xcodes.zip
-                ./xcodes install $XCODE_VERSION
-                rm -f xcodes xcodes.zip
-                XCODE_PATH="/Applications/Xcode-$XCODE_VERSION.app"
-              fi
-
-              echo "Switching to Xcode at $XCODE_PATH..."
-              sudo xcode-select --switch "$XCODE_PATH/Contents/Developer"
-              echo "Selected Xcode path: $(xcode-select -p)"
-              echo "Accepting Xcode license..."
-              sudo xcodebuild -license accept
-              echo "Xcode setup completed!"
-              xcodebuild -version
-            else
-              echo "This script only works on macOS"
-              exit 1
-            fi
-          '';
-
           build-ios = pkgs.writeScriptBin "build-ios" ''
             #!${pkgs.stdenv.shell}
             echo "Building for iOS..."
@@ -178,7 +145,6 @@
 
           basePackages = with pkgs; [
             upx
-            cargo-ndk
             androidSdk
             autoconf
             automake
@@ -188,13 +154,7 @@
           ];
 
           darwinPackages = with pkgs; [
-            darwin.apple_sdk.frameworks.CoreServices
-            darwin.apple_sdk.frameworks.CoreFoundation
-            darwin.apple_sdk.frameworks.Foundation
-            darwin.apple_sdk.frameworks.Security
-            darwin.apple_sdk.frameworks.SystemConfiguration
             (darwinDerivations.xcode-wrapper pkgs)
-            scripts.setup-ios-env
             scripts.build-ios
             scripts.build-macos
             scripts.build-android
@@ -204,6 +164,8 @@
           darwinHook = ''
             export LC_ALL=en_US.UTF-8
             export LANG=en_US.UTF-8
+
+            unset SDKROOT
 
             rustup target add aarch64-linux-android x86_64-linux-android i686-linux-android
             rustup target add aarch64-apple-ios x86_64-apple-ios aarch64-apple-darwin x86_64-apple-darwin
@@ -215,11 +177,8 @@
             export LD=/usr/bin/clang
             export LD_FOR_TARGET=/usr/bin/clang
 
-            sudo xcode-select --switch "$DEVELOPER_DIR"
-
             echo "iOS development environment:"
             echo "DEVELOPER_DIR: $DEVELOPER_DIR"
-            echo "SDKROOT: $SDKROOT"
             xcodebuild -version
           '';
 
