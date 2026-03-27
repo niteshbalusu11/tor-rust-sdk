@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
 
-use tor::http_client::{make_http_request, HttpMethod, HttpRequestParams};
+use tor::http_client::{HttpMethod, HttpRequestParams, make_http_request};
 use tor::{TorService, TorServiceParam};
 
 fn main() {
@@ -50,6 +50,29 @@ fn main() {
         }
         Err(e) => {
             println!("GET Request failed: {:?}", e);
+        }
+    }
+
+    println!("\nTesting onion GET request...");
+    let onion_get_params = HttpRequestParams {
+        url: "http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion".to_string(),
+        method: HttpMethod::GET,
+        headers: None,
+        body: None,
+        timeout_ms: Some(30000),
+    };
+
+    match make_http_request(onion_get_params, socks_proxy.clone()) {
+        Ok(response) => {
+            println!("Onion GET Status: {}", response.status_code);
+            println!("Onion GET Error: {:?}", response.error);
+            println!(
+                "Onion GET Body Prefix: {:?}",
+                &response.body.chars().take(120).collect::<String>()
+            );
+        }
+        Err(e) => {
+            println!("Onion GET failed: {:?}", e);
         }
     }
 
