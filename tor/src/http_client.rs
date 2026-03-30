@@ -37,6 +37,10 @@ pub struct HttpRequestParams {
     pub timeout_ms: Option<u64>,
 }
 
+fn build_socks_proxy_url(socks_proxy: &str) -> String {
+    format!("socks5h://{}", socks_proxy)
+}
+
 /// Makes an HTTP request through the Tor SOCKS proxy using reqwest
 pub async fn make_http_request_async(
     params: HttpRequestParams,
@@ -45,7 +49,7 @@ pub async fn make_http_request_async(
     // Create client with proxy
     let client = Client::builder()
         .proxy(
-            Proxy::all(format!("socks5://{}", socks_proxy))
+            Proxy::all(build_socks_proxy_url(&socks_proxy))
                 .map_err(|e| TorErrors::TcpStreamError(format!("Failed to create proxy: {}", e)))?,
         )
         .timeout(Duration::from_millis(params.timeout_ms.unwrap_or(30000)))
@@ -112,4 +116,17 @@ pub fn make_http_request(
         .lock()
         .unwrap()
         .block_on(async { make_http_request_async(params, socks_proxy).await })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_socks_proxy_url;
+
+    #[test]
+    fn builds_remote_dns_socks_proxy_url() {
+        assert_eq!(
+            build_socks_proxy_url("127.0.0.1:9050"),
+            "socks5h://127.0.0.1:9050"
+        );
+    }
 }
