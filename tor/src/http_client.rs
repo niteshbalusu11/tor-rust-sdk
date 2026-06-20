@@ -35,6 +35,12 @@ pub struct HttpRequestParams {
     pub headers: Option<HashMap<String, String>>,
     pub body: Option<String>,
     pub timeout_ms: Option<u64>,
+    /// When `Some(true)`, accept self-signed or otherwise invalid TLS
+    /// certificates. Defaults to `false`. Intended for use cases like
+    /// Tor v3 hidden services, where the `.onion` address already
+    /// authenticates the endpoint and the upstream host typically
+    /// presents a self-signed cert (e.g. LND REST).
+    pub trust_invalid_certs: Option<bool>,
 }
 
 fn build_socks_proxy_url(socks_proxy: &str) -> String {
@@ -47,12 +53,18 @@ pub async fn make_http_request_async(
     socks_proxy: String,
 ) -> Result<HttpResponse, TorErrors> {
     // Create client with proxy
-    let client = Client::builder()
+    let mut builder = Client::builder()
         .proxy(
             Proxy::all(build_socks_proxy_url(&socks_proxy))
                 .map_err(|e| TorErrors::TcpStreamError(format!("Failed to create proxy: {}", e)))?,
         )
-        .timeout(Duration::from_millis(params.timeout_ms.unwrap_or(30000)))
+        .timeout(Duration::from_millis(params.timeout_ms.unwrap_or(30000)));
+
+    if params.trust_invalid_certs.unwrap_or(false) {
+        builder = builder.danger_accept_invalid_certs(true);
+    }
+
+    let client = builder
         .build()
         .map_err(|e| TorErrors::TcpStreamError(format!("Failed to create client: {}", e)))?;
 
